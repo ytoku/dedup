@@ -5,7 +5,7 @@ use std::fs;
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 
-use anyhow::{bail, Context as _, Result};
+use anyhow::{ensure, Context as _, Result};
 use filetime::FileTime;
 use walkdir::WalkDir;
 
@@ -76,9 +76,10 @@ fn relink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> Result<()> {
             link_dir_path.to_string_lossy(),
         )
     })?;
-    if original_metadata.st_dev() != link_dir_metadata.st_dev() {
-        bail!("dev mismatch");
-    }
+    ensure!(
+        original_metadata.st_dev() == link_dir_metadata.st_dev(),
+        "dev mismatch",
+    );
 
     let link_dir_mtime = FileTime::from_last_modification_time(&link_dir_metadata);
 
