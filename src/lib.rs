@@ -130,17 +130,17 @@ fn execute_relink(database: &Database) -> Result<()> {
                 .collect();
             inodes.sort_by_key(|inode| std::cmp::Reverse(inode.files.len()));
 
-            let inode_ref = inodes[0];
-            let original_path = inode_ref.files[0].as_path();
-
-            if inodes.len() > 1 {
-                println!("{}", &original_path.display());
+            if inodes.len() <= 1 {
+                continue;
             }
+
+            let original_path = inodes[0].files[0].as_path();
+            println!("{}", &original_path.display());
 
             let mtime = inodes.iter().map(|inode| inode.mtime).min().unwrap();
             update_mtime(original_path, mtime)?;
 
-            for &inode in inodes.iter().skip(1) {
+            for &inode in &inodes[1..] {
                 for filepath in &inode.files {
                     println!("<- {}", &filepath.display());
                     relink(original_path, filepath)?;
