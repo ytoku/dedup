@@ -26,8 +26,8 @@ fn prepare_file(database: &mut Database, path: &Path) -> Result<()> {
     let ino = Ino(metadata.st_ino());
 
     let device = database.get_or_insert(dev);
-    if let Some(inode) = device.known_inodes.get(&ino) {
-        inode.borrow_mut().files.push(path.to_path_buf());
+    if let Some(inode) = device.inodes.get_mut(ino) {
+        inode.files.push(path.to_path_buf());
         return Ok(());
     }
 
@@ -36,9 +36,9 @@ fn prepare_file(database: &mut Database, path: &Path) -> Result<()> {
         .with_context(|| format!("Failed to calculate a hash: {}", path.to_string_lossy()))?;
 
     let identical = device.identicals.get_or_insert(hash);
-    let inode = identical.get_or_insert(ino, mtime);
-    device.known_inodes.insert(ino, inode.clone());
-    inode.borrow_mut().files.push(path.to_path_buf());
+    let inode = device.inodes.get_or_insert(ino, mtime);
+    inode.files.push(path.to_path_buf());
+    identical.inos.push(ino);
     Ok(())
 }
 
@@ -122,25 +122,25 @@ fn walk_and_prepare(args: &Args, database: &mut Database) -> Result<()> {
 fn execute_relink(database: &Database) -> Result<()> {
     for device in database.devices.values() {
         for identical in device.identicals.map.values() {
-            let mut inodes: Vec<_> = identical.inodes.values().collect();
-            inodes.sort_by_key(|inode| std::cmp::Reverse(inode.borrow_mut().files.len()));
+            let mut inodes: Vec<_> = identical
+                .inos
+                .iter()
+                .map(|&ino| device.inodes.get(ino).unwrap())
+                .collect();
+            inodes.sort_by_key(|inode| std::cmp::Reverse(inode.files.len()));
 
-            let inode_ref = inodes[0].borrow();
+            let inode_ref = inodes[0];
             let original_path = inode_ref.files[0].as_path();
 
             if inodes.len() > 1 {
                 println!("{}", &original_path.display());
             }
 
-            let mtime = inodes
-                .iter()
-                .map(|inode| inode.borrow().mtime)
-                .min()
-                .unwrap();
+            let mtime = inodes.iter().map(|inode| inode.mtime).min().unwrap();
             update_mtime(original_path, mtime)?;
 
             for &inode in inodes.iter().skip(1) {
-                for filepath in &inode.borrow().files {
+                for filepath in &inode.files {
                     println!("<- {}", &filepath.display());
                     relink(original_path, filepath)?;
                 }

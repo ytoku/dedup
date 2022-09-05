@@ -1,11 +1,9 @@
-use std::cell::RefCell;
 use std::clone::Clone;
 use std::cmp::{Eq, PartialEq};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::Copy;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use filetime::FileTime;
 
@@ -33,22 +31,39 @@ impl Inode {
 }
 
 #[derive(Debug)]
+pub struct Inodes {
+    pub map: HashMap<Ino, Inode>,
+}
+
+impl Inodes {
+    pub fn new() -> Inodes {
+        Inodes {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn get_or_insert(&mut self, ino: Ino, mtime: FileTime) -> &mut Inode {
+        self.map.entry(ino).or_insert_with(|| Inode::new(mtime))
+    }
+
+    pub fn get(&self, ino: Ino) -> Option<&Inode> {
+        self.map.get(&ino)
+    }
+
+    pub fn get_mut(&mut self, ino: Ino) -> Option<&mut Inode> {
+        self.map.get_mut(&ino)
+    }
+}
+
+#[derive(Debug)]
 #[warn(clippy::new_without_default)]
 pub struct IdenticalFile {
-    pub inodes: HashMap<Ino, Rc<RefCell<Inode>>>,
+    pub inos: Vec<Ino>,
 }
 
 impl IdenticalFile {
     pub fn new() -> IdenticalFile {
-        IdenticalFile {
-            inodes: HashMap::new(),
-        }
-    }
-
-    pub fn get_or_insert(&mut self, ino: Ino, mtime: FileTime) -> &mut Rc<RefCell<Inode>> {
-        self.inodes
-            .entry(ino)
-            .or_insert_with(|| Rc::new(RefCell::new(Inode::new(mtime))))
+        IdenticalFile { inos: Vec::new() }
     }
 }
 
@@ -73,15 +88,15 @@ impl IdenticalFiles {
 #[derive(Debug)]
 #[warn(clippy::new_without_default)]
 pub struct Device {
+    pub inodes: Inodes,
     pub identicals: IdenticalFiles,
-    pub known_inodes: HashMap<Ino, Rc<RefCell<Inode>>>,
 }
 
 impl Device {
     pub fn new() -> Device {
         Device {
+            inodes: Inodes::new(),
             identicals: IdenticalFiles::new(),
-            known_inodes: HashMap::new(),
         }
     }
 }
