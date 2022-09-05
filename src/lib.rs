@@ -80,7 +80,7 @@ fn relink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> Result<()> {
         bail!("dev mismatch");
     }
 
-    let dir_mtime = FileTime::from_last_modification_time(&link_dir_metadata);
+    let link_dir_mtime = FileTime::from_last_modification_time(&link_dir_metadata);
 
     fs::remove_file(&link).with_context(|| {
         format!(
@@ -96,7 +96,7 @@ fn relink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> Result<()> {
         )
     })?;
 
-    filetime::set_file_mtime(&link_dir_path, dir_mtime).with_context(|| {
+    filetime::set_file_mtime(&link_dir_path, link_dir_mtime).with_context(|| {
         format!(
             "Failed to filetime::set_file_mtime to restore a directory mtime: {}",
             link_dir_path.to_string_lossy(),
