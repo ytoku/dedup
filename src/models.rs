@@ -18,14 +18,16 @@ pub struct Dev(pub u64);
 #[derive(Debug)]
 pub struct Inode {
     pub mtime: FileTime,
+    pub nlink: u64,
     pub realsize: u64,
     pub files: Vec<PathBuf>,
 }
 
 impl Inode {
-    pub fn new(mtime: FileTime, realsize: u64) -> Inode {
+    pub fn new(mtime: FileTime, nlink: u64, realsize: u64) -> Inode {
         Inode {
             mtime,
+            nlink,
             realsize,
             files: Vec::new(),
         }
@@ -44,10 +46,16 @@ impl Inodes {
         }
     }
 
-    pub fn get_or_insert(&mut self, ino: Ino, mtime: FileTime, realsize: u64) -> &mut Inode {
+    pub fn get_or_insert(
+        &mut self,
+        ino: Ino,
+        mtime: FileTime,
+        nlink: u64,
+        realsize: u64,
+    ) -> &mut Inode {
         self.map
             .entry(ino)
-            .or_insert_with(|| Inode::new(mtime, realsize))
+            .or_insert_with(|| Inode::new(mtime, nlink, realsize))
     }
 
     pub fn get(&self, ino: Ino) -> Option<&Inode> {

@@ -36,10 +36,11 @@ fn prepare_file(database: &mut Database, path: &Path) -> Result<()> {
     let hash = sha256file(path)
         .with_context(|| format!("Failed to calculate a hash: {}", path.to_string_lossy()))?;
 
+    let nlink = metadata.nlink();
     let realsize = metadata.blocks() * 512;
 
     let identical = device.identicals.get_or_insert(hash);
-    let inode = device.inodes.get_or_insert(ino, mtime, realsize);
+    let inode = device.inodes.get_or_insert(ino, mtime, nlink, realsize);
     inode.files.push(path.to_path_buf());
     identical.inos.push(ino);
     Ok(())
@@ -149,7 +150,9 @@ fn execute_relink(database: &Database) -> Result<u64> {
                     println!("<- {}", &filepath.display());
                     relink(original_path, filepath)?;
                 }
-                gain += inode.realsize;
+                if inode.files.len() as u64 == inode.nlink {
+                    gain += inode.realsize;
+                }
             }
         }
     }
