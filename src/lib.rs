@@ -2,7 +2,7 @@ mod digest;
 mod models;
 
 use std::fs;
-use std::os::linux::fs::MetadataExt;
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
 use anyhow::{ensure, Context as _, Result};
@@ -23,8 +23,8 @@ pub struct Args {
 fn prepare_file(database: &mut Database, path: &Path) -> Result<()> {
     let metadata = fs::metadata(&path)
         .with_context(|| format!("Failed to fs::metadata: {}", path.to_string_lossy()))?;
-    let dev = Dev(metadata.st_dev());
-    let ino = Ino(metadata.st_ino());
+    let dev = Dev(metadata.dev());
+    let ino = Ino(metadata.ino());
 
     let device = database.get_or_insert(dev);
     if let Some(inode) = device.inodes.get_mut(ino) {
@@ -36,7 +36,7 @@ fn prepare_file(database: &mut Database, path: &Path) -> Result<()> {
     let hash = sha256file(path)
         .with_context(|| format!("Failed to calculate a hash: {}", path.to_string_lossy()))?;
 
-    let realsize = metadata.st_blocks() * 512;
+    let realsize = metadata.blocks() * 512;
 
     let identical = device.identicals.get_or_insert(hash);
     let inode = device.inodes.get_or_insert(ino, mtime, realsize);
@@ -80,7 +80,7 @@ fn relink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> Result<()> {
         )
     })?;
     ensure!(
-        original_metadata.st_dev() == link_dir_metadata.st_dev(),
+        original_metadata.dev() == link_dir_metadata.dev(),
         "dev mismatch",
     );
 
