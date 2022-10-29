@@ -7,6 +7,7 @@ use std::path::Path;
 
 use anyhow::{ensure, Context as _, Result};
 use filetime::FileTime;
+use num_format::{Locale, ToFormattedString};
 use walkdir::WalkDir;
 
 use crate::digest::sha256file;
@@ -35,8 +36,10 @@ fn prepare_file(database: &mut Database, path: &Path) -> Result<()> {
     let hash = sha256file(path)
         .with_context(|| format!("Failed to calculate a hash: {}", path.to_string_lossy()))?;
 
+    let realsize = metadata.st_blocks() * 512;
+
     let identical = device.identicals.get_or_insert(hash);
-    let inode = device.inodes.get_or_insert(ino, mtime);
+    let inode = device.inodes.get_or_insert(ino, mtime, realsize);
     inode.files.push(path.to_path_buf());
     identical.inos.push(ino);
     Ok(())
@@ -120,7 +123,8 @@ fn walk_and_prepare(args: &Args, database: &mut Database) -> Result<()> {
     Ok(())
 }
 
-fn execute_relink(database: &Database) -> Result<()> {
+fn execute_relink(database: &Database) -> Result<u64> {
+    let mut gain: u64 = 0;
     for device in database.devices.values() {
         for identical in device.identicals.map.values() {
             let mut inodes: Vec<_> = identical
@@ -145,15 +149,17 @@ fn execute_relink(database: &Database) -> Result<()> {
                     println!("<- {}", &filepath.display());
                     relink(original_path, filepath)?;
                 }
+                gain += inode.realsize;
             }
         }
     }
-    Ok(())
+    Ok(gain)
 }
 
 pub fn run(args: Args) -> Result<()> {
     let mut database = Database::new();
     walk_and_prepare(&args, &mut database)?;
-    execute_relink(&database)?;
+    let gain = execute_relink(&database)?;
+    println!("Gain: {} bytes", gain.to_formatted_string(&Locale::en));
     Ok(())
 }

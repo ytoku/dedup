@@ -12,5 +12,6 @@ filetime = "0.2.17"
 generic-array = "0.14.6"
 hex = "0.4.3"
 hex-literal = "0.3.4"
+num-format = "0.4.3"
 sha2 = { version = "0.10.2", features = ["asm"] }
 walkdir = "2.3.2"
