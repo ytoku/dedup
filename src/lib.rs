@@ -20,9 +20,7 @@ pub struct Args {
     targets: Vec<String>,
 }
 
-fn prepare_file(database: &mut Database, path: &Path) -> Result<()> {
-    let metadata = fs::metadata(&path)
-        .with_context(|| format!("Failed to fs::metadata: {}", path.to_string_lossy()))?;
+fn prepare_file(database: &mut Database, path: &Path, metadata: &fs::Metadata) -> Result<()> {
     let dev = Dev(metadata.dev());
     let ino = Ino(metadata.ino());
 
@@ -32,7 +30,7 @@ fn prepare_file(database: &mut Database, path: &Path) -> Result<()> {
         return Ok(());
     }
 
-    let mtime = FileTime::from_last_modification_time(&metadata);
+    let mtime = FileTime::from_last_modification_time(metadata);
     let hash = sha256file(path)
         .with_context(|| format!("Failed to calculate a hash: {}", path.to_string_lossy()))?;
 
@@ -114,11 +112,15 @@ fn relink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> Result<()> {
 fn walk_and_prepare(args: &Args, database: &mut Database) -> Result<()> {
     for target in &args.targets {
         for entry in WalkDir::new(target) {
-            let path = entry.context("Failed to get a entry")?.into_path();
-            if !path.is_file() {
+            let entry = entry.context("Failed to get a entry")?;
+            let path = &entry.path();
+            if !entry.file_type().is_file() {
                 continue;
             }
-            prepare_file(database, path.as_path())?;
+            let metadata = entry
+                .metadata()
+                .with_context(|| format!("Failed to get metadata: {}", path.to_string_lossy()))?;
+            prepare_file(database, path, &metadata)?;
         }
     }
     Ok(())
