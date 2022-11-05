@@ -99,7 +99,7 @@ fn relink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> Result<()> {
         )
     })?;
 
-    filetime::set_file_mtime(&link_dir_path, link_dir_mtime).with_context(|| {
+    filetime::set_file_mtime(link_dir_path, link_dir_mtime).with_context(|| {
         format!(
             "Failed to filetime::set_file_mtime to restore a directory mtime: {}",
             link_dir_path.to_string_lossy(),
