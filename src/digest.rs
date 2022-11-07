@@ -16,8 +16,8 @@ pub fn sha256file(path: &Path) -> io::Result<Sha256Value> {
     const BUFFER_SIZE: usize = 65536;
     let mut reader = io::BufReader::with_capacity(BUFFER_SIZE, file);
 
-    // There is no way to use uninitialized read buffer in stable rust 1.64.
-    // Nightly rust has std::io::ReadBuf for this purpose.
+    // There is no way to use uninitialized read buffer in stable rust 1.65.
+    // Nightly rust has std::io::BorrowedBuf for this purpose.
     const CHUNK_SIZE: usize = 1024;
     let mut chunk = [0_u8; CHUNK_SIZE];
 
