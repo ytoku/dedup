@@ -14,9 +14,8 @@ use crate::digest::sha256file;
 use crate::models::*;
 
 #[derive(clap::Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None)]
 pub struct Args {
-    #[clap(value_parser)]
     targets: Vec<String>,
 }
 

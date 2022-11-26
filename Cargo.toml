@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.63"
-clap = { version = "3.2.20", features = ["derive"] }
+clap = { version = "4.0.27", features = ["derive"] }
 filetime = "0.2.17"
 generic-array = "0.14.6"
 hex = "0.4.3"
