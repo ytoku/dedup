@@ -110,16 +110,26 @@ fn relink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) -> Result<()> {
 
 fn walk_and_prepare(args: &Args, database: &mut Database) -> Result<()> {
     for target in &args.targets {
-        for entry in WalkDir::new(target) {
+        let mut it = WalkDir::new(target).into_iter();
+        while let Some(entry) = it.next() {
             let entry = entry.context("Failed to get a entry")?;
             let path = &entry.path();
-            if !entry.file_type().is_file() {
-                continue;
-            }
             let metadata = entry
                 .metadata()
                 .with_context(|| format!("Failed to get metadata: {}", path.to_string_lossy()))?;
-            prepare_file(database, path, &metadata)?;
+            if metadata.is_dir() {
+                let dev = Dev(metadata.dev());
+                let ino = Ino(metadata.ino());
+                // If the directory is already visited, do not walk into the directory.
+                // For example:
+                // - duplicated targets
+                // - bind mount
+                if !database.get_or_insert(dev).visited_dirs.visit(ino) {
+                    it.skip_current_dir();
+                }
+            } else if metadata.is_file() {
+                prepare_file(database, path, &metadata)?;
+            }
         }
     }
     Ok(())

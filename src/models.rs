@@ -1,6 +1,6 @@
 use std::clone::Clone;
 use std::cmp::{Eq, PartialEq};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::marker::Copy;
 use std::path::PathBuf;
@@ -98,10 +98,28 @@ impl IdenticalFiles {
 }
 
 #[derive(Debug)]
+pub struct VisitedDirs {
+    pub set: HashSet<Ino>,
+}
+
+impl VisitedDirs {
+    pub fn new() -> VisitedDirs {
+        VisitedDirs {
+            set: HashSet::new(),
+        }
+    }
+
+    pub fn visit(&mut self, ino: Ino) -> bool {
+        self.set.insert(ino)
+    }
+}
+
+#[derive(Debug)]
 #[warn(clippy::new_without_default)]
 pub struct Device {
     pub inodes: Inodes,
     pub identicals: IdenticalFiles,
+    pub visited_dirs: VisitedDirs,
 }
 
 impl Device {
@@ -109,6 +127,7 @@ impl Device {
         Device {
             inodes: Inodes::new(),
             identicals: IdenticalFiles::new(),
+            visited_dirs: VisitedDirs::new(),
         }
     }
 }
