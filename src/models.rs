@@ -68,7 +68,6 @@ impl Inodes {
 }
 
 #[derive(Debug)]
-#[warn(clippy::new_without_default)]
 pub struct IdenticalFile {
     pub inos: Vec<Ino>,
 }
@@ -80,7 +79,6 @@ impl IdenticalFile {
 }
 
 #[derive(Debug)]
-#[warn(clippy::new_without_default)]
 pub struct IdenticalFiles {
     pub map: HashMap<Sha256Value, IdenticalFile>,
 }
@@ -115,7 +113,6 @@ impl VisitedDirs {
 }
 
 #[derive(Debug)]
-#[warn(clippy::new_without_default)]
 pub struct Device {
     pub inodes: Inodes,
     pub identicals: IdenticalFiles,
@@ -133,7 +130,6 @@ impl Device {
 }
 
 #[derive(Debug)]
-#[warn(clippy::new_without_default)]
 pub struct Database {
     pub devices: HashMap<Dev, Device>,
 }
