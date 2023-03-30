@@ -19,6 +19,14 @@ pub struct Args {
     targets: Vec<String>,
 }
 
+fn insert_identical_file(identicals: &mut IdenticalFiles, path: &Path, ino: Ino) -> Result<()> {
+    let hash = sha256file(path)
+        .with_context(|| format!("Failed to calculate a hash: {}", path.to_string_lossy()))?;
+    let identical = identicals.get_or_insert(hash);
+    identical.inos.push(ino);
+    Ok(())
+}
+
 fn prepare_file(database: &mut Database, path: &Path, metadata: &fs::Metadata) -> Result<()> {
     let dev = Dev(metadata.dev());
     let ino = Ino(metadata.ino());
@@ -30,16 +38,29 @@ fn prepare_file(database: &mut Database, path: &Path, metadata: &fs::Metadata) -
     }
 
     let mtime = FileTime::from_last_modification_time(metadata);
-    let hash = sha256file(path)
-        .with_context(|| format!("Failed to calculate a hash: {}", path.to_string_lossy()))?;
 
     let nlink = metadata.nlink();
     let realsize = metadata.blocks() * 512;
 
-    let identical = device.identicals.get_or_insert(hash);
     let inode = device.inodes.get_or_insert(ino, mtime, nlink, realsize);
     inode.files.push(path.to_path_buf());
-    identical.inos.push(ino);
+
+    let size = metadata.size();
+    match device.sieve.get_mut(size) {
+        // first time: mark unique
+        None => device.sieve.set_unique(size, ino),
+        // already seen
+        Some(sieve_entry) => {
+            if let &mut FileSizeSieveEntry::Unique(ino0) = sieve_entry {
+                // second time: unmark unique and calculate the hash of previous found file
+                *sieve_entry = FileSizeSieveEntry::Ambiguous;
+                let path0 = &device.inodes.get(ino0).unwrap().files[0];
+                insert_identical_file(&mut device.identicals, path0, ino0)?;
+            }
+            // calculate the hash of current file
+            insert_identical_file(&mut device.identicals, path, ino)?;
+        }
+    }
     Ok(())
 }
 

@@ -96,6 +96,33 @@ impl IdenticalFiles {
 }
 
 #[derive(Debug)]
+pub enum FileSizeSieveEntry {
+    Unique(Ino),
+    Ambiguous,
+}
+
+#[derive(Debug)]
+pub struct FileSizeSieve {
+    map: HashMap<u64, FileSizeSieveEntry>,
+}
+
+impl FileSizeSieve {
+    pub fn new() -> FileSizeSieve {
+        FileSizeSieve {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn get_mut(&mut self, size: u64) -> Option<&mut FileSizeSieveEntry> {
+        self.map.get_mut(&size)
+    }
+
+    pub fn set_unique(&mut self, size: u64, ino: Ino) {
+        self.map.insert(size, FileSizeSieveEntry::Unique(ino));
+    }
+}
+
+#[derive(Debug)]
 pub struct VisitedDirs {
     pub set: HashSet<Ino>,
 }
@@ -115,6 +142,7 @@ impl VisitedDirs {
 #[derive(Debug)]
 pub struct Device {
     pub inodes: Inodes,
+    pub sieve: FileSizeSieve,
     pub identicals: IdenticalFiles,
     pub visited_dirs: VisitedDirs,
 }
@@ -123,6 +151,7 @@ impl Device {
     pub fn new() -> Device {
         Device {
             inodes: Inodes::new(),
+            sieve: FileSizeSieve::new(),
             identicals: IdenticalFiles::new(),
             visited_dirs: VisitedDirs::new(),
         }
