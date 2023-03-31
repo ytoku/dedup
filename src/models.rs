@@ -24,8 +24,8 @@ pub struct Inode {
 }
 
 impl Inode {
-    pub fn new(mtime: FileTime, nlink: u64, realsize: u64) -> Inode {
-        Inode {
+    pub fn new(mtime: FileTime, nlink: u64, realsize: u64) -> Self {
+        Self {
             mtime,
             nlink,
             realsize,
@@ -40,8 +40,8 @@ pub struct Inodes {
 }
 
 impl Inodes {
-    pub fn new() -> Inodes {
-        Inodes {
+    pub fn new() -> Self {
+        Self {
             map: HashMap::new(),
         }
     }
@@ -73,8 +73,8 @@ pub struct IdenticalFile {
 }
 
 impl IdenticalFile {
-    pub fn new() -> IdenticalFile {
-        IdenticalFile { inos: Vec::new() }
+    pub fn new() -> Self {
+        Self { inos: Vec::new() }
     }
 }
 
@@ -84,8 +84,8 @@ pub struct IdenticalFiles {
 }
 
 impl IdenticalFiles {
-    pub fn new() -> IdenticalFiles {
-        IdenticalFiles {
+    pub fn new() -> Self {
+        Self {
             map: HashMap::new(),
         }
     }
@@ -107,8 +107,8 @@ pub struct FileSizeSieve {
 }
 
 impl FileSizeSieve {
-    pub fn new() -> FileSizeSieve {
-        FileSizeSieve {
+    pub fn new() -> Self {
+        Self {
             map: HashMap::new(),
         }
     }
@@ -128,8 +128,8 @@ pub struct VisitedDirs {
 }
 
 impl VisitedDirs {
-    pub fn new() -> VisitedDirs {
-        VisitedDirs {
+    pub fn new() -> Self {
+        Self {
             set: HashSet::new(),
         }
     }
@@ -148,8 +148,8 @@ pub struct Device {
 }
 
 impl Device {
-    pub fn new() -> Device {
-        Device {
+    pub fn new() -> Self {
+        Self {
             inodes: Inodes::new(),
             sieve: FileSizeSieve::new(),
             identicals: IdenticalFiles::new(),
@@ -164,8 +164,8 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new() -> Database {
-        Database {
+    pub fn new() -> Self {
+        Self {
             devices: HashMap::new(),
         }
     }
