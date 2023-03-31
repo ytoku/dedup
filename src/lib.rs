@@ -3,7 +3,7 @@ mod models;
 
 use std::fs;
 use std::os::unix::fs::MetadataExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{ensure, Context as _, Result};
 use filetime::FileTime;
@@ -16,7 +16,7 @@ use crate::models::*;
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    targets: Vec<String>,
+    targets: Vec<PathBuf>,
 }
 
 fn insert_identical_file(identicals: &mut IdenticalFiles, path: &Path, ino: Ino) -> Result<()> {
