@@ -165,7 +165,7 @@ fn execute_relink(database: &Database) -> Result<u64> {
                 .iter()
                 .map(|&ino| device.inodes.get(ino).unwrap())
                 .collect();
-            inodes.sort_by_key(|inode| std::cmp::Reverse(inode.files.len()));
+            inodes.sort_by_key(|inode| std::cmp::Reverse(inode.nlink));
 
             if inodes.len() <= 1 {
                 continue;
