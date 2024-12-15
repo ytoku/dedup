@@ -16,6 +16,9 @@ use crate::models::*;
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
+    #[arg(short = 'n', long, default_value_t = false)]
+    dry_run: bool,
+
     targets: Vec<PathBuf>,
 }
 
@@ -156,7 +159,7 @@ fn walk_and_prepare(args: &Args, database: &mut Database) -> Result<()> {
     Ok(())
 }
 
-fn execute_relink(database: &Database) -> Result<u64> {
+fn execute_relink(database: &Database, dry_run: bool) -> Result<u64> {
     let mut gain: u64 = 0;
     for device in database.devices.values() {
         for identical in device.identicals.map.values() {
@@ -175,12 +178,16 @@ fn execute_relink(database: &Database) -> Result<u64> {
             println!("{}", &original_path.display());
 
             let mtime = inodes.iter().map(|inode| inode.mtime).min().unwrap();
-            update_mtime(original_path, mtime)?;
+            if !dry_run {
+                update_mtime(original_path, mtime)?;
+            }
 
             for &inode in &inodes[1..] {
                 for filepath in &inode.files {
                     println!("<- {}", &filepath.display());
-                    relink(original_path, filepath)?;
+                    if !dry_run {
+                        relink(original_path, filepath)?;
+                    }
                 }
                 if inode.files.len() as u64 == inode.nlink {
                     gain += inode.realsize;
@@ -194,7 +201,7 @@ fn execute_relink(database: &Database) -> Result<u64> {
 pub fn run(args: Args) -> Result<()> {
     let mut database = Database::new();
     walk_and_prepare(&args, &mut database)?;
-    let gain = execute_relink(&database)?;
+    let gain = execute_relink(&database, args.dry_run)?;
     println!("Gain: {} bytes", gain.to_formatted_string(&Locale::en));
     Ok(())
 }
